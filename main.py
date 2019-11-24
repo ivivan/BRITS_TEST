@@ -68,8 +68,13 @@ def evaluate(model, val_iter):
     save_label = []
 
     for idx, data in enumerate(val_iter):
+
         data = utils.to_var(data)
         ret = model.run_on_batch(data, None)
+
+        # print('*********')
+        # print('evals:{}'.format(ret['evals'].size()))
+        # print('imputations:{}'.format(ret['imputations'].size()))
 
         # save the imputation results which is used to test the improvement of traditional methods with imputed values
         save_impute.append(ret['imputations'].data.cpu().numpy())
@@ -85,13 +90,13 @@ def evaluate(model, val_iter):
         eval_ = ret['evals'].data.cpu().numpy()
         imputation = ret['imputations'].data.cpu().numpy()
 
-        # evals += eval_[np.where(eval_masks == 1)].tolist()
-        # imputations += imputation[np.where(eval_masks == 1)].tolist()
+        evals += eval_[np.where(eval_masks == 1)].tolist()
+        imputations += imputation[np.where(eval_masks == 1)].tolist()
 
-        evals += eval_[np.where(eval_masks == 1)
-                       and np.where(is_train == 0)].tolist()
-        imputations += imputation[np.where(eval_masks == 1)
-                                  and np.where(is_train == 0)].tolist()
+        # evals += eval_[np.where(eval_masks == 1)
+        #                and np.where(is_train == 0)].tolist()
+        # imputations += imputation[np.where(eval_masks == 1)
+        #                           and np.where(is_train == 0)].tolist()
 
         # collect test label & prediction
         pred = pred[np.where(is_train == 0)]
@@ -108,8 +113,10 @@ def evaluate(model, val_iter):
     evals = np.asarray(evals)
     imputations = np.asarray(imputations)
 
-    print('MAE', np.abs(evals - imputations).mean())
+    # print('evals:{}'.format(evals.shape))
+    # print('imputations:{}'.format(imputations.shape))
 
+    print('MAE', np.abs(evals - imputations).mean())
     print('MRE', np.abs(evals - imputations).sum() / np.abs(evals).sum())
 
     save_impute = np.concatenate(save_impute, axis=0)

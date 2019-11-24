@@ -13,7 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 class MySet(Dataset):
     def __init__(self):
         super(MySet, self).__init__()
-        self.content = open('./json/file.json').readlines()
+        self.content = open('./json/json').readlines()
 
         indices = np.arange(len(self.content))
         val_indices = np.random.choice(indices, len(self.content) // 5)
@@ -25,10 +25,10 @@ class MySet(Dataset):
 
     def __getitem__(self, idx):
         rec = json.loads(self.content[idx])
-        # if idx in self.val_indices:
-        #     rec['is_train'] = 0
-        # else:
-        #     rec['is_train'] = 1
+        if idx in self.val_indices:
+            rec['is_train'] = 0
+        else:
+            rec['is_train'] = 1
         return rec
 
 
@@ -111,6 +111,14 @@ def collate_fn(recs):
         eval_masks = torch.FloatTensor(
             list(map(lambda r: list(map(lambda x: x['eval_masks'], r)), recs)))
 
+        # print('values:{}'.format(values.size()))
+        # print('!!')
+        # print('masks:{}'.format(masks.size()))
+        # print('deltas:{}'.format(deltas.size()))
+        # print('forwards:{}'.format(forwards.size()))
+        # print('evals:{}'.format(evals.size()))
+        # print('eval_masks:{}'.format(eval_masks.size()))
+
         return {
             'values': values.permute(0,2,1),
             'forwards': forwards.permute(0,2,1),
@@ -129,6 +137,14 @@ def collate_fn(recs):
         list(map(lambda x: x['label'], recs)))
     ret_dict['is_train'] = torch.FloatTensor(
         list(map(lambda x: x['is_train'], recs)))
+
+    # print('values:{}'.format(ret_dict['forward']['values'].size()))
+    # print('!!')
+    # print('masks:{}'.format(masks.size()))
+    # print('deltas:{}'.format(deltas.size()))
+    # print('forwards:{}'.format(forwards.size()))
+    # print('evals:{}'.format(evals.size()))
+    # print('eval_masks:{}'.format(eval_masks.size()))
 
     return ret_dict
 
@@ -160,7 +176,7 @@ def get_train_loader(batch_size=100, shuffle=True):
     
 
 
-def get_test_loader(batch_size=100, shuffle=True):
+def get_test_loader(batch_size=100, shuffle=False):
     data_set = MyTestSet()
     data_iter = DataLoader(dataset = data_set, \
                               batch_size = batch_size, \

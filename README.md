@@ -22,7 +22,7 @@ Some key changes:
     * Newmodel: based on imputation here: https://github.com/caow13/BRITS
     * Oldmodel: based on imputation here: https://github.com/NIPS-BRITS/BRITS/tree/master/models
 
-6. To use these model, need to generate dataset with propoer structure first
+6. To use these models, need to generate datasets with propoer structures first
     Will put this piece of code later.
 ***
 

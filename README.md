@@ -8,11 +8,11 @@ Some key changes:
 
 1. Only train the model on train data and only evaluate it on test data
 
-    The previous implementation evaluated the model based on all data (train+test), which is hardly right in any situation.
+    The previous implementation evaluated the model based on all data (train+test), which is hardly right in any situation. And makes the resutls look much better!!
 
 2. Make the model a pure imputation model
 
-    Set all lose weight to imputation loss=1, classification loss=0
+    Set lose weight to imputation loss=1, classification loss=0
 
 3. Support Python 3.6
 

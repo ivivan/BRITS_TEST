@@ -1,6 +1,6 @@
 # README
 ***
-I made some change based on the repository below, and made these models support python 3.6 and pytorch 1.2.
+I made some changes based on the repository below, and made these models support python 3.6 and pytorch 1.2.
 
 These models are used as benchmarks in my paper
 

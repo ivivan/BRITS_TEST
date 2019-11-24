@@ -18,11 +18,12 @@ Some key changes:
 
 4. Limited by the model's design (input dim == output dim), in order to impute only one variable in the TS data, I can only input TS with 1 dim. 
 
-5. There are two branches in this repository: newmodel and old model
+5. There are two branches in this repository: newmodel and oldmodel
     * Newmodel: based on imputation here: https://github.com/caow13/BRITS
     * Oldmodel: based on imputation here: https://github.com/NIPS-BRITS/BRITS/tree/master/models
 
 6. To use these models, need to generate datasets with propoer structures first
+
     Will put this piece of code later.
 ***
 

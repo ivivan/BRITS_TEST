@@ -15,7 +15,6 @@ import data_loader
 from sklearn import metrics
 
 SEQ_LEN = 15
-INPUT_SIZE =1
 
 def binary_cross_entropy_with_logits(input, target, weight=None, size_average=True, reduce=True):
     if not (target.size() == input.size()):
@@ -34,16 +33,46 @@ def binary_cross_entropy_with_logits(input, target, weight=None, size_average=Tr
     else:
         return loss.sum()
 
-
-class TemporalDecay(nn.Module):
-    def __init__(self, input_size, rnn_hid_size):
-        super(TemporalDecay, self).__init__()
-        self.rnn_hid_size = rnn_hid_size
+class FeatureRegression(nn.Module):
+    def __init__(self, input_size):
+        super(FeatureRegression, self).__init__()
         self.build(input_size)
 
     def build(self, input_size):
-        self.W = Parameter(torch.Tensor(self.rnn_hid_size, input_size))
-        self.b = Parameter(torch.Tensor(self.rnn_hid_size))
+        self.W = Parameter(torch.Tensor(input_size, input_size))
+        self.b = Parameter(torch.Tensor(input_size))
+
+        m = torch.ones(input_size, input_size) - torch.eye(input_size, input_size)
+        self.register_buffer('m', m)
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        stdv = 1. / math.sqrt(self.W.size(0))
+        self.W.data.uniform_(-stdv, stdv)
+        if self.b is not None:
+            self.b.data.uniform_(-stdv, stdv)
+
+    def forward(self, x):
+        z_h = F.linear(x, self.W * Variable(self.m), self.b)
+        return z_h
+
+class TemporalDecay(nn.Module):
+    def __init__(self, input_size, output_size, diag = False):
+        super(TemporalDecay, self).__init__()
+        self.diag = diag
+
+        self.build(input_size, output_size)
+
+    def build(self, input_size, output_size):
+        self.W = Parameter(torch.Tensor(output_size, input_size))
+        self.b = Parameter(torch.Tensor(output_size))
+
+        if self.diag == True:
+            assert(input_size == output_size)
+            m = torch.eye(input_size, input_size)
+            self.register_buffer('m', m)
+
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -53,7 +82,10 @@ class TemporalDecay(nn.Module):
             self.b.data.uniform_(-stdv, stdv)
 
     def forward(self, d):
-        gamma = F.relu(F.linear(d, self.W, self.b))
+        if self.diag == True:
+            gamma = F.relu(F.linear(d, self.W * Variable(self.m), self.b))
+        else:
+            gamma = F.relu(F.linear(d, self.W, self.b))
         gamma = torch.exp(-gamma)
         return gamma
 
@@ -68,11 +100,17 @@ class Model(nn.Module):
         self.build()
 
     def build(self):
-        self.rnn_cell = nn.LSTMCell(INPUT_SIZE * 2, self.rnn_hid_size)
+        self.rnn_cell = nn.LSTMCell(35 * 2, self.rnn_hid_size)
 
-        self.regression = nn.Linear(self.rnn_hid_size, INPUT_SIZE)
-        self.temp_decay = TemporalDecay(input_size = INPUT_SIZE, rnn_hid_size = self.rnn_hid_size)
+        self.temp_decay_h = TemporalDecay(input_size = 35, output_size = self.rnn_hid_size, diag = False)
+        self.temp_decay_x = TemporalDecay(input_size = 35, output_size = 35, diag = True)
 
+        self.hist_reg = nn.Linear(self.rnn_hid_size, 35)
+        self.feat_reg = FeatureRegression(35)
+
+        self.weight_combine = nn.Linear(35 * 2, 35)
+
+        self.dropout = nn.Dropout(p = 0.5)
         self.out = nn.Linear(self.rnn_hid_size, 1)
 
     def forward(self, data, direct):
@@ -80,6 +118,7 @@ class Model(nn.Module):
         values = data[direct]['values']
         masks = data[direct]['masks']
         deltas = data[direct]['deltas']
+        forwards = data[direct]['forwards']
 
         evals = data[direct]['evals']
         eval_masks = data[direct]['eval_masks']
@@ -93,7 +132,6 @@ class Model(nn.Module):
         if torch.cuda.is_available():
             h, c = h.cuda(), c.cuda()
 
-        x_loss = 0.0
         y_loss = 0.0
 
         imputations = []
@@ -102,36 +140,34 @@ class Model(nn.Module):
             x = values[:, t, :]
             m = masks[:, t, :]
             d = deltas[:, t, :]
+            f = forwards[:, t, :]
 
-            gamma = self.temp_decay(d)
-            h = h * gamma
-            x_h = self.regression(h)
+            gamma_h = self.temp_decay_h(d)
+            gamma_x = self.temp_decay_x(d)
 
-            x_c =  m * x +  (1 - m) * x_h
+            h = h * gamma_h
 
-            x_loss += torch.sum(torch.abs(x - x_h) * m) / (torch.sum(m) + 1e-5)
+            x_h = m * x + (1 - m) * (1 - gamma_x) * f
 
-            inputs = torch.cat([x_c, m], dim = 1)
+            inputs = torch.cat([x_h, m], dim = 1)
 
             h, c = self.rnn_cell(inputs, (h, c))
 
-            imputations.append(x_c.unsqueeze(dim = 1))
+            imputations.append(x_h.unsqueeze(dim = 1))
 
         imputations = torch.cat(imputations, dim = 1)
 
-        y_h = self.out(h)
+        y_h = self.out(self.dropout(h))
         y_loss = binary_cross_entropy_with_logits(y_h, labels, reduce = False)
-
-        # only use training labels
         y_loss = torch.sum(y_loss * is_train) / (torch.sum(is_train) + 1e-5)
 
         y_h = F.sigmoid(y_h)
 
-        return {'loss': x_loss * self.impute_weight + y_loss * self.label_weight, 'predictions': y_h,\
+        return {'loss': y_loss, 'predictions': y_h,\
                 'imputations': imputations, 'labels': labels, 'is_train': is_train,\
                 'evals': evals, 'eval_masks': eval_masks}
 
-    def run_on_batch(self, data, optimizer, epoch = None):
+    def run_on_batch(self, data, optimizer, epoch=None):
         ret = self(data, direct = 'forward')
 
         if optimizer is not None:

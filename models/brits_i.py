@@ -11,23 +11,28 @@ import utils
 import argparse
 import data_loader
 
-from models import rits_i
+# import rits_i
+import models.rits_i as rits_i
 from sklearn import metrics
 
 # from ipdb import set_trace
 
-SEQ_LEN = 36
-RNN_HID_SIZE = 64
+SEQ_LEN = 15
 
 
 class Model(nn.Module):
-    def __init__(self):
+    def __init__(self, rnn_hid_size, impute_weight, label_weight):
         super(Model, self).__init__()
+
+        self.rnn_hid_size = rnn_hid_size
+        self.impute_weight = impute_weight
+        self.label_weight = label_weight
+
         self.build()
 
     def build(self):
-        self.rits_f = rits_i.Model()
-        self.rits_b = rits_i.Model()
+        self.rits_f = rits_i.Model(self.rnn_hid_size, self.impute_weight, self.label_weight)
+        self.rits_b = rits_i.Model(self.rnn_hid_size, self.impute_weight, self.label_weight)
 
     def forward(self, data):
         ret_f = self.rits_f(data, 'forward')
@@ -54,7 +59,7 @@ class Model(nn.Module):
         return ret_f
 
     def get_consistency_loss(self, pred_f, pred_b):
-        loss = torch.pow(pred_f - pred_b, 2.0).mean()
+        loss = torch.abs(pred_f - pred_b).mean() * 1e-1
         return loss
 
     def reverse(self, ret):
@@ -74,7 +79,7 @@ class Model(nn.Module):
 
         return ret
 
-    def run_on_batch(self, data, optimizer):
+    def run_on_batch(self, data, optimizer, epoch=None):
         ret = self(data)
 
         if optimizer is not None:

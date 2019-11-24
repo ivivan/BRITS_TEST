@@ -18,6 +18,12 @@ Some key changes:
 
 4. Limited by the model's design (input dim == output dim), in order to impute only one variable in the TS data, I can only input TS with 1 dim. 
 
+5. There are two branches in this repository: newmodel and old model
+    * Newmodel: based on imputation here: https://github.com/caow13/BRITS
+    * Oldmodel: based on imputation here: https://github.com/NIPS-BRITS/BRITS/tree/master/models
+
+6. To use these model, need to generate dataset with propoer structure first
+    Will put this piece of code later.
 ***
 
 It is a pytorch implemention of paper "BRITS: Bidirectional Recurrent Imputation for Time Series, Wei Cao, Dong Wang, Jian Li, Hao Zhou, Lei Li Yitan Li. (NerIPS 2018)". The paper can be found here. http://papers.nips.cc/paper/7911-brits-bidirectional-recurrent-imputation-for-time-series

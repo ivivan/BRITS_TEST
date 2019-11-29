@@ -10,11 +10,14 @@ import numpy as np
 import time
 import utils
 import models
+from support.early_stopping import EarlyStopping
 import argparse
 import data_loader
 import pandas as pd
 import ujson as json
 
+
+from math import sqrt
 from sklearn import metrics
 
 # from ipdb import set_trace
@@ -29,7 +32,7 @@ parser.add_argument('--label_weight', type=float)
 args = parser.parse_args()
 
 
-def train(model):
+def train(model, early_stopping):
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
     # data_iter = data_loader.get_loader(batch_size=args.batch_size)
@@ -52,7 +55,14 @@ def train(model):
 
         test_data_iter = data_loader.get_test_loader(
             batch_size=args.batch_size)
-        evaluate(model, test_data_iter)
+        valid_loss = evaluate(model, test_data_iter)
+
+        # early stop
+        early_stopping(valid_loss, model)
+
+        if early_stopping.early_stop:
+            print("Early stopping")
+            break      
 
 
 def evaluate(model, val_iter):
@@ -118,12 +128,15 @@ def evaluate(model, val_iter):
 
     print('MAE', np.abs(evals - imputations).mean())
     print('MRE', np.abs(evals - imputations).sum() / np.abs(evals).sum())
+    print('RMSE',sqrt(metrics.mean_squared_error(evals,imputations)))
 
     save_impute = np.concatenate(save_impute, axis=0)
     save_label = np.concatenate(save_label, axis=0)
 
     np.save('./result/{}_data'.format(args.model), save_impute)
     np.save('./result/{}_label'.format(args.model), save_label)
+
+    return sqrt(metrics.mean_squared_error(evals,imputations))
 
 
 def run():
@@ -137,7 +150,13 @@ def run():
     if torch.cuda.is_available():
         model = model.cuda()
 
-    train(model)
+    # Early Stopping
+    # initialize the early_stopping object
+    # early stopping patience; how long to wait after last time validation loss improved.
+    patience = 10
+    early_stopping = EarlyStopping(savepath='./result/imputation_model.pt',patience=patience, verbose=True)
+
+    train(model, early_stopping)
 
 
 if __name__ == '__main__':

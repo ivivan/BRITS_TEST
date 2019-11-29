@@ -17,7 +17,7 @@ from sklearn import metrics
 
 # from ipdb import set_trace
 
-SEQ_LEN = 15
+SEQ_LEN = 30
 RNN_HID_SIZE = 64
 
 

@@ -19,12 +19,13 @@ import ujson as json
 
 from math import sqrt
 from sklearn import metrics
+from tslearn.metrics import dtw, dtw_path
 
 # from ipdb import set_trace
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=1000)
-parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--batch_size', type=int, default=10)
 parser.add_argument('--model', type=str)
 parser.add_argument('--hid_size', type=int)
 parser.add_argument('--impute_weight', type=float)
@@ -77,6 +78,9 @@ def evaluate(model, val_iter):
     save_impute = []
     save_label = []
 
+    eval_all = []
+    imputation_all = []
+
     for idx, data in enumerate(val_iter):
 
         data = utils.to_var(data)
@@ -100,8 +104,20 @@ def evaluate(model, val_iter):
         eval_ = ret['evals'].data.cpu().numpy()
         imputation = ret['imputations'].data.cpu().numpy()
 
+
+
+
         evals += eval_[np.where(eval_masks == 1)].tolist()
         imputations += imputation[np.where(eval_masks == 1)].tolist()
+
+
+        # for dtw error
+        eval_all.append(eval_)
+        imputation_all.append(imputation)
+
+
+
+
 
         # evals += eval_[np.where(eval_masks == 1)
         #                and np.where(is_train == 0)].tolist()
@@ -120,15 +136,27 @@ def evaluate(model, val_iter):
 
     # print('AUC {}'.format(metrics.roc_auc_score(labels, preds)))
 
+
+
+    # dtw error
+
+    loss_dtw = []
+    temp_eval = np.concatenate(eval_all, axis=0)
+    temp_imputation = np.concatenate(imputation_all, axis=0)
+
+    for j,k in zip(temp_eval,temp_imputation):
+        loss_dtw.append(dtw(j,k))
+
+    
+
     evals = np.asarray(evals)
     imputations = np.asarray(imputations)
 
-    # print('evals:{}'.format(evals.shape))
-    # print('imputations:{}'.format(imputations.shape))
 
     print('MAE', np.abs(evals - imputations).mean())
     print('MRE', np.abs(evals - imputations).sum() / np.abs(evals).sum())
     print('RMSE',sqrt(metrics.mean_squared_error(evals,imputations)))
+    print('TDI', np.asarray(loss_dtw).mean())
 
     save_impute = np.concatenate(save_impute, axis=0)
     save_label = np.concatenate(save_label, axis=0)
@@ -137,6 +165,20 @@ def evaluate(model, val_iter):
     np.save('./result/{}_label'.format(args.model), save_label)
 
     return sqrt(metrics.mean_squared_error(evals,imputations))
+
+
+
+
+
+def test(model, savepath):
+
+    model.load_state_dict(torch.load(savepath))
+
+    test_data_iter = data_loader.get_test_loader(
+        batch_size=args.batch_size)
+    valid_loss = evaluate(model, test_data_iter)
+
+
 
 
 def run():
@@ -154,10 +196,27 @@ def run():
     # initialize the early_stopping object
     # early stopping patience; how long to wait after last time validation loss improved.
     patience = 10
-    early_stopping = EarlyStopping(savepath='./result/imputation_model.pt',patience=patience, verbose=True)
+    early_stopping = EarlyStopping(savepath='./result/Level_brits6_0103.pt',patience=patience, verbose=True)
 
     train(model, early_stopping)
 
 
+def evaluate_model():
+    model = getattr(models,
+                    args.model).Model(args.hid_size, args.impute_weight,
+                                      args.label_weight)
+    total_params = sum(p.numel() for p in model.parameters()
+                       if p.requires_grad)
+    print('Total params is {}'.format(total_params))
+
+    if torch.cuda.is_available():
+        model = model.cuda()
+
+    savepath='./result/Level_brits6_0103.pt'
+    test(model,savepath)
+
+
 if __name__ == '__main__':
-    run()
+    # run()
+    # evaluate the best model
+    evaluate_model()

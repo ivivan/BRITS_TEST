@@ -14,7 +14,10 @@ import data_loader
 # from ipdb import set_trace
 from sklearn import metrics
 
-SEQ_LEN = 30
+SEQ_LEN = 26
+INPUT_SIZE = 1
+OUTPUT_SIZE = 1
+BATCH_SIZE = 10
 
 def binary_cross_entropy_with_logits(input, target, weight=None, size_average=True, reduce=True):
     if not (target.size() == input.size()):
@@ -100,16 +103,16 @@ class Model(nn.Module):
         self.build()
 
     def build(self):
-        self.rnn_cell = nn.LSTMCell(35 * 3, self.rnn_hid_size)
-        self.pred_rnn = nn.LSTM(35, self.rnn_hid_size, batch_first = True)
+        self.rnn_cell = nn.LSTMCell(INPUT_SIZE * 3, self.rnn_hid_size)
+        self.pred_rnn = nn.LSTM(self.rnn_hid_size, self.rnn_hid_size, batch_first = True)
 
-        self.temp_decay_h = TemporalDecay(input_size = 35, output_size = self.rnn_hid_size, diag = False)
-        self.temp_decay_x = TemporalDecay(input_size = 35, output_size = 35, diag = True)
+        self.temp_decay_h = TemporalDecay(input_size = INPUT_SIZE, output_size = self.rnn_hid_size, diag = False)
+        self.temp_decay_x = TemporalDecay(input_size = INPUT_SIZE, output_size = self.rnn_hid_size, diag = False)
 
-        self.hist_reg = nn.Linear(self.rnn_hid_size * 2, 35)
-        self.feat_reg = FeatureRegression(35)
+        self.hist_reg = nn.Linear(self.rnn_hid_size *2, self.rnn_hid_size)
+        self.feat_reg = FeatureRegression(INPUT_SIZE)
 
-        self.weight_combine = nn.Linear(35 * 2, 35)
+        self.weight_combine = nn.Linear(INPUT_SIZE * 2, self.rnn_hid_size)
 
         self.dropout = nn.Dropout(p = 0.25)
         self.out = nn.Linear(self.rnn_hid_size, 1)
@@ -163,6 +166,7 @@ class Model(nn.Module):
             hf = hidden_forward[t]
             hb = hidden_backward[t]
             h = torch.cat([hf, hb], dim = 1)
+ 
 
             x_h = self.hist_reg(h)
             x_f = self.feat_reg(x)

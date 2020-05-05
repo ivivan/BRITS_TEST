@@ -14,7 +14,7 @@ import data_loader
 # from ipdb import set_trace
 from sklearn import metrics
 
-SEQ_LEN = 30
+SEQ_LEN = 23
 INPUT_SIZE =1
 
 def binary_cross_entropy_with_logits(input, target, weight=None, size_average=True, reduce=True):

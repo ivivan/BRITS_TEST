@@ -35,7 +35,7 @@ class MySet(Dataset):
 class MyTrainSet(Dataset):
     def __init__(self):
         super(MyTrainSet, self).__init__()
-        self.content = open('./json/IOWA/NO_train.json').readlines()
+        self.content = open('./json/QLD/Level_6train0103.json').readlines()
 
         indices = np.arange(len(self.content))
 
@@ -60,7 +60,7 @@ class MyTrainSet(Dataset):
 class MyTestSet(Dataset):
     def __init__(self):
         super(MyTestSet, self).__init__()
-        self.content = open('./json/IOWA/NO_test.json').readlines()
+        self.content = open('./json/QLD/Level_6test0103.json').readlines()
 
         indices = np.arange(len(self.content))
 

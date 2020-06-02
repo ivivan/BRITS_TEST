@@ -14,7 +14,7 @@ import data_loader
 # from ipdb import set_trace
 from sklearn import metrics
 
-SEQ_LEN = 26
+SEQ_LEN = 22
 INPUT_SIZE = 1
 OUTPUT_SIZE = 1
 BATCH_SIZE = 10
@@ -187,6 +187,7 @@ class Model(nn.Module):
         labels = data['labels'].view(-1, 1)
         is_train = data['is_train'].view(-1, 1)
 
+
         h = Variable(torch.zeros((values.size()[0], self.rnn_hid_size)))
         c = Variable(torch.zeros((values.size()[0], self.rnn_hid_size)))
 
@@ -197,6 +198,7 @@ class Model(nn.Module):
         out, (h, c) = self.pred_rnn(imputations)
 
         y_h = self.out(h.squeeze())
+
         y_loss = binary_cross_entropy_with_logits(y_h, labels, reduce = False)
         y_loss = torch.sum(y_loss * is_train) / (torch.sum(is_train) + 1e-5)
 

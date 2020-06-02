@@ -196,7 +196,7 @@ def run():
     # initialize the early_stopping object
     # early stopping patience; how long to wait after last time validation loss improved.
     patience = 10
-    early_stopping = EarlyStopping(savepath='./result/Level_brits6_0103.pt',patience=patience, verbose=True)
+    early_stopping = EarlyStopping(savepath='./result/EMS/USA_nitrate_mrnn2_1012.pt',patience=patience, verbose=True)
 
     train(model, early_stopping)
 
@@ -212,7 +212,7 @@ def evaluate_model():
     if torch.cuda.is_available():
         model = model.cuda()
 
-    savepath='./result/Level_brits6_0103.pt'
+    savepath='./result/EMS/USA_nitrate_mrnn2_1012.pt'
     test(model,savepath)
 
 

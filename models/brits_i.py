@@ -17,7 +17,7 @@ from sklearn import metrics
 
 # from ipdb import set_trace
 
-SEQ_LEN = 22
+SEQ_LEN = 26
 
 
 class Model(nn.Module):

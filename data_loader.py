@@ -35,7 +35,7 @@ class MySet(Dataset):
 class MyTrainSet(Dataset):
     def __init__(self):
         super(MyTrainSet, self).__init__()
-        self.content = open('./json/EMS/USA/USA_nitrate_2train1012.json').readlines()
+        self.content = open('./json/QLD/Nitrate_6train1012.json').readlines()
 
         indices = np.arange(len(self.content))
 
@@ -60,13 +60,14 @@ class MyTrainSet(Dataset):
 class MyTestSet(Dataset):
     def __init__(self):
         super(MyTestSet, self).__init__()
-        self.content = open('./json/EMS/USA/USA_nitrate_2test1012.json').readlines()
+        self.content = open('./json/QLD/Nitrate_6test1012.json').readlines()
 
         indices = np.arange(len(self.content))
 
         val_indices = np.random.choice(indices, len(self.content) // 5)
 
         self.val_indices = set(val_indices.tolist())
+
 
     def __len__(self):
         return len(self.content)

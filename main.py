@@ -90,9 +90,7 @@ def evaluate(model, val_iter):
         # print('evals:{}'.format(ret['evals'].size()))
         # print('imputations:{}'.format(ret['imputations'].size()))
 
-        # save the imputation results which is used to test the improvement of traditional methods with imputed values
-        save_impute.append(ret['imputations'].data.cpu().numpy())
-        save_label.append(ret['labels'].data.cpu().numpy())
+
 
         pred = ret['predictions'].data.cpu().numpy()
         label = ret['labels'].data.cpu().numpy()
@@ -110,6 +108,9 @@ def evaluate(model, val_iter):
         evals += eval_[np.where(eval_masks == 1)].tolist()
         imputations += imputation[np.where(eval_masks == 1)].tolist()
 
+        # save the imputation results which is used to test the improvement of traditional methods with imputed values
+        save_impute.append(imputation[np.where(eval_masks == 1)])
+        save_label.append(ret['labels'].data.cpu().numpy())   
 
         # for dtw error
         eval_all.append(eval_)
@@ -196,7 +197,7 @@ def run():
     # initialize the early_stopping object
     # early stopping patience; how long to wait after last time validation loss improved.
     patience = 10
-    early_stopping = EarlyStopping(savepath='./result/EMS/USA_nitrate_mrnn2_1012.pt',patience=patience, verbose=True)
+    early_stopping = EarlyStopping(savepath='./result/EMS/USA_Temp_mrnn6_1012.pt',patience=patience, verbose=True)
 
     train(model, early_stopping)
 
@@ -212,7 +213,7 @@ def evaluate_model():
     if torch.cuda.is_available():
         model = model.cuda()
 
-    savepath='./result/EMS/USA_nitrate_mrnn2_1012.pt'
+    savepath='./result/nitrate_brits6_1012.pt'
     test(model,savepath)
 
 

@@ -14,7 +14,7 @@ import data_loader
 # from ipdb import set_trace
 from sklearn import metrics
 
-SEQ_LEN = 22
+SEQ_LEN = 26
 INPUT_SIZE = 1
 OUTPUT_SIZE = 1
 BATCH_SIZE = 10
